@@ -18,6 +18,7 @@ public class SkyjoGameManager : MonoBehaviour
 
     [Header("Score & Messages")]
     [SerializeField] private Text scoreText;
+    [SerializeField] private Text drawnCardText;
     [SerializeField] private Text messageText;
 
     [Header("Actions")]
@@ -100,16 +101,29 @@ public class SkyjoGameManager : MonoBehaviour
         if (discardDrawnButton) discardDrawnButton.gameObject.SetActive(_game.ShowDiscardDrawnButton);
         if (newRoundButton) newRoundButton.gameObject.SetActive(_game.AllRevealed());
 
+        // Drawn card: show value so player knows what they picked
+        if (drawnCardText)
+        {
+            bool hasDrawn = _game.DrawnCard.HasValue;
+            drawnCardText.gameObject.SetActive(hasDrawn);
+            if (hasDrawn)
+                drawnCardText.text = "Drawn: " + _game.DrawnCard.Value;
+        }
+
+        // Message: assign once and force layout so it doesn't stack/overlap
         if (messageText)
         {
+            string msg;
             if (_game.AllRevealed())
-                messageText.text = "Round over! Your score: " + _game.GetScore();
+                msg = "Round over! Your score: " + _game.GetScore();
             else if (_game.ShowDiscardDrawnButton)
-                messageText.text = "You drew " + _game.DrawnCard + ". Swap with a grid card or discard and flip one.";
+                msg = "Swap with a grid card, or discard and flip one.";
             else if (_game.WaitingForGridClick)
-                messageText.text = "Click a card in your grid to replace or flip.";
+                msg = "Click a card in your grid to replace or flip.";
             else
-                messageText.text = "Draw from deck or take the discard.";
+                msg = "Draw from deck or take the discard.";
+            messageText.text = msg;
+            Canvas.ForceUpdateCanvases();
         }
     }
 }

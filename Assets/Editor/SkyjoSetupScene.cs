@@ -108,14 +108,28 @@ public static class SkyjoSetupScene
             slotViews[i] = slotView;
         }
 
-        // --- Message
+        // --- Drawn card (shown when you have a card in hand)
+        var drawnCardGo = CreateText(root, "DrawnCardText", "Drawn: —", 28);
+        var drawnCardRect = drawnCardGo.GetComponent<RectTransform>();
+        drawnCardRect.anchorMin = new Vector2(0.5f, 0.5f);
+        drawnCardRect.anchorMax = new Vector2(0.5f, 0.5f);
+        drawnCardRect.pivot = new Vector2(0.5f, 0.5f);
+        drawnCardRect.anchoredPosition = new Vector2(0, -100);
+        drawnCardRect.sizeDelta = new Vector2(200, 50);
+        drawnCardGo.SetActive(false);
+
+        // --- Message (one line, no rich text to avoid overlap)
         var msgGo = CreateText(root, "MessageText", "Draw from deck or take the discard.", 18);
         var msgRect = msgGo.GetComponent<RectTransform>();
         msgRect.anchorMin = new Vector2(0.5f, 0);
         msgRect.anchorMax = new Vector2(0.5f, 0);
         msgRect.pivot = new Vector2(0.5f, 0);
         msgRect.anchoredPosition = new Vector2(0, 120);
-        msgRect.sizeDelta = new Vector2(500, 50);
+        msgRect.sizeDelta = new Vector2(520, 36);
+        var msgText = msgGo.GetComponent<Text>();
+        msgText.horizontalOverflow = HorizontalWrapMode.Wrap;
+        msgText.verticalOverflow = VerticalWrapMode.Truncate;
+        msgText.supportRichText = false;
 
         // --- Buttons row
         var buttonsGo = new GameObject("ActionButtons");
@@ -146,6 +160,7 @@ public static class SkyjoSetupScene
         for (int i = 0; i < slotViews.Length; i++)
             so.FindProperty("slotViews").GetArrayElementAtIndex(i).objectReferenceValue = slotViews[i];
         so.FindProperty("scoreText").objectReferenceValue = scoreGo.GetComponent<Text>();
+        so.FindProperty("drawnCardText").objectReferenceValue = drawnCardGo.GetComponent<Text>();
         so.FindProperty("messageText").objectReferenceValue = msgGo.GetComponent<Text>();
         so.FindProperty("drawFromDeckButton").objectReferenceValue = btnDraw;
         so.FindProperty("takeDiscardButton").objectReferenceValue = btnTake;
