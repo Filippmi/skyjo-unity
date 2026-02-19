@@ -11,14 +11,14 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
     public int SlotIndex { get; set; }
 
     [SerializeField] private Image background;
-    [SerializeField] private Text label;
+    [SerializeField] private UnityEngine.UI.Text label;
 
     private SkyjoGameManager _manager;
 
     private void Awake()
     {
         if (background == null) background = GetComponent<Image>();
-        if (label == null) label = GetComponentInChildren<Text>();
+        if (label == null) label = GetComponentInChildren<UnityEngine.UI.Text>();
         _manager = FindObjectOfType<SkyjoGameManager>();
     }
 
