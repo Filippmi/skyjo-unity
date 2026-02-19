@@ -110,7 +110,7 @@ public class SkyjoGameManager : MonoBehaviour
                 drawnCardText.text = "Drawn: " + _game.DrawnCard.Value;
         }
 
-        // Message: assign once and force layout so it doesn't stack/overlap
+        // Message: clear then set so the Text mesh fully rebuilds (stops old text piling on screen)
         if (messageText)
         {
             string msg;
@@ -122,6 +122,8 @@ public class SkyjoGameManager : MonoBehaviour
                 msg = "Click a card in your grid to replace or flip.";
             else
                 msg = "Draw from deck or take the discard.";
+            messageText.text = "";
+            messageText.SetAllDirty();
             messageText.text = msg;
             Canvas.ForceUpdateCanvases();
         }
