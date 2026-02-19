@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -49,17 +50,27 @@ public class SkyjoGameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Scene can end up with multiple MessageText objects (e.g. from duplicate setup), causing stacked text. Keep only the one we use.
+    /// Scene can end up with multiple MessageText objects (duplicate UI), causing stacked text. Keep exactly one and use it.
     /// </summary>
     private void RemoveDuplicateMessageTexts()
     {
-        if (!messageText) return;
         var all = FindObjectsOfType<Text>();
+        var messageTexts = new List<Text>();
         foreach (var t in all)
         {
-            if (t.gameObject.name == "MessageText" && t != messageText)
+            if (t.gameObject.name == "MessageText")
+                messageTexts.Add(t);
+        }
+        if (messageTexts.Count <= 1) return;
+
+        // Keep the one we're already assigned to, or the first if ref is missing/wrong
+        Text keep = (messageText != null && messageTexts.Contains(messageText)) ? messageText : messageTexts[0];
+        foreach (var t in messageTexts)
+        {
+            if (t != keep)
                 Destroy(t.gameObject);
         }
+        messageText = keep;
     }
 
     public void OnDrawFromDeck()
@@ -127,8 +138,8 @@ public class SkyjoGameManager : MonoBehaviour
                 drawnCardText.text = "Drawn: " + _game.DrawnCard.Value;
         }
 
-        // Message: clear then set so the Text mesh fully rebuilds (stops old text piling on screen)
-        if (messageText)
+        // Message: update the single MessageText (duplicates removed in Start)
+        if (messageText != null && messageText.gameObject != null)
         {
             string msg;
             if (_game.AllRevealed())
@@ -139,10 +150,7 @@ public class SkyjoGameManager : MonoBehaviour
                 msg = "Click a card in your grid to replace or flip.";
             else
                 msg = "Draw from deck or take the discard.";
-            messageText.text = "";
-            messageText.SetAllDirty();
             messageText.text = msg;
-            Canvas.ForceUpdateCanvases();
         }
     }
 }
