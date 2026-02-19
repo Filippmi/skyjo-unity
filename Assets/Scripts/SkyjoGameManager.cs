@@ -42,8 +42,24 @@ public class SkyjoGameManager : MonoBehaviour
         for (int i = 0; i < slotViews.Length && i < SkyjoGame.GridSize; i++)
             if (slotViews[i]) slotViews[i].SlotIndex = i;
 
+        RemoveDuplicateMessageTexts();
+
         _game.NewRound();
         RefreshUI();
+    }
+
+    /// <summary>
+    /// Scene can end up with multiple MessageText objects (e.g. from duplicate setup), causing stacked text. Keep only the one we use.
+    /// </summary>
+    private void RemoveDuplicateMessageTexts()
+    {
+        if (!messageText) return;
+        var all = FindObjectsOfType<Text>();
+        foreach (var t in all)
+        {
+            if (t.gameObject.name == "MessageText" && t != messageText)
+                Destroy(t.gameObject);
+        }
     }
 
     public void OnDrawFromDeck()
@@ -72,7 +88,8 @@ public class SkyjoGameManager : MonoBehaviour
 
     public void OnGridSlotClicked(int index)
     {
-        if (!_game.WaitingForGridClick) return;
+        // Allow when we have a drawn card to swap, or when we need to pick a target (replace/flip)
+        if (!_game.ShowDiscardDrawnButton && !_game.WaitingForGridClick) return;
         if (_game.ReplaceOrFlip(index))
             RefreshUI();
     }

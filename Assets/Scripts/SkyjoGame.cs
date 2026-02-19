@@ -155,10 +155,12 @@ public class SkyjoGame
 
     /// <summary>
     /// Replace grid slot with drawn card, or flip face-down. Returns true if action was valid.
+    /// Allowed when: PickTarget (replace/flip), or SwapOrDiscard with a drawn card (swap).
     /// </summary>
     public bool ReplaceOrFlip(int gridIndex)
     {
-        if (_phase != TurnPhase.PickTarget || gridIndex < 0 || gridIndex >= GridSize) return false;
+        bool canPickGrid = _phase == TurnPhase.PickTarget || (_phase == TurnPhase.SwapOrDiscard && _drawnCard.HasValue);
+        if (!canPickGrid || gridIndex < 0 || gridIndex >= GridSize) return false;
         var cell = _grid[gridIndex];
         if (cell.Removed) return false;
 
