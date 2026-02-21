@@ -56,13 +56,13 @@ public static class SkyjoSetupScene
         pilesRect.anchoredPosition = new Vector2(0, -70);
         pilesRect.sizeDelta = new Vector2(280, 100);
 
-        var drawPileBtn = CreateButton(pilesGo.transform, "DrawPile", "Draw\n(", 90, 90);
+        var drawPileBtn = CreateButton(pilesGo.transform, "DrawPile", "", 90, 90);
         var drawPileRect = drawPileBtn.GetComponent<RectTransform>();
         drawPileRect.anchorMin = new Vector2(0, 0.5f);
         drawPileRect.anchorMax = new Vector2(0, 0.5f);
         drawPileRect.anchoredPosition = new Vector2(50, 0);
-        var drawCountText = drawPileBtn.GetComponentInChildren<Text>();
-        drawCountText.name = "DrawCount";
+        var drawPileText = drawPileBtn.GetComponentInChildren<Text>();
+        if (drawPileText != null) drawPileText.gameObject.SetActive(false);
 
         var discardBtn = CreateButton(pilesGo.transform, "DiscardPile", "Discard", 90, 90);
         var discardRect = discardBtn.GetComponent<RectTransform>();
@@ -154,7 +154,6 @@ public static class SkyjoSetupScene
         var so = new SerializedObject(manager);
         so.FindProperty("drawPileButton").objectReferenceValue = drawPileBtn;
         so.FindProperty("discardPileButton").objectReferenceValue = discardBtn;
-        so.FindProperty("drawCountText").objectReferenceValue = drawCountText;
         so.FindProperty("discardTopText").objectReferenceValue = discardTopText;
         so.FindProperty("slotViews").arraySize = slotViews.Length;
         for (int i = 0; i < slotViews.Length; i++)

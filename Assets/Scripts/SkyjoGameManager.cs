@@ -17,7 +17,6 @@ public class SkyjoGameManager : MonoBehaviour
     [Header("Piles")]
     [SerializeField] private Button drawPileButton;
     [SerializeField] private Button discardPileButton;
-    [SerializeField] private Text drawCountText;
     [SerializeField] private Text discardTopText;
 
     [Header("Grid")]
@@ -41,6 +40,8 @@ public class SkyjoGameManager : MonoBehaviour
 
     private SkyjoGame _game;
     private bool _animating;
+    private GameObject _drawnCardVisual; // card shown in hand (from draw or take discard)
+    private bool _drawnFromDeck; // true if current drawn card came from deck, false if from discard
 
     private void Start()
     {
@@ -101,12 +102,13 @@ public class SkyjoGameManager : MonoBehaviour
 
     public void OnDiscardDrawn()
     {
-        _game.DiscardDrawnAndFlip();
-        RefreshUI();
+        if (_animating || !_game.ShowDiscardDrawnButton) return;
+        StartCoroutine(AnimateDiscardDrawn());
     }
 
     public void OnNewRound()
     {
+        if (_drawnCardVisual != null) { Destroy(_drawnCardVisual); _drawnCardVisual = null; }
         _game.NewRound();
         RefreshUI();
     }
@@ -131,7 +133,7 @@ public class SkyjoGameManager : MonoBehaviour
     private void RefreshUI()
     {
         if (scoreText) scoreText.text = "Score: " + _game.GetScore();
-        if (drawCountText) drawCountText.text = ""; // Draw pile shows no text (card back only)
+        if (drawnCardText) drawnCardText.gameObject.SetActive(false); // drawn card shown as visual, not text
 
         if (discardTopText)
         {
@@ -151,15 +153,6 @@ public class SkyjoGameManager : MonoBehaviour
 
         if (discardDrawnButton) discardDrawnButton.gameObject.SetActive(_game.ShowDiscardDrawnButton);
         if (newRoundButton) newRoundButton.gameObject.SetActive(_game.AllRevealed());
-
-        // Drawn card: show value so player knows what they picked
-        if (drawnCardText)
-        {
-            bool hasDrawn = _game.DrawnCard.HasValue;
-            drawnCardText.gameObject.SetActive(hasDrawn);
-            if (hasDrawn)
-                drawnCardText.text = "Drawn: " + _game.DrawnCard.Value;
-        }
 
         // Message: update the single MessageText (duplicates removed in Start)
         if (messageText != null && messageText.gameObject != null)
@@ -245,12 +238,14 @@ public class SkyjoGameManager : MonoBehaviour
     {
         _animating = true;
         SetButtonsInteractable(false);
+        if (_drawnCardVisual != null) { Destroy(_drawnCardVisual); _drawnCardVisual = null; }
 
         var canvas = GetCanvas();
         if (canvas == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
         var drawPileRect = drawPileButton != null ? drawPileButton.GetComponent<RectTransform>() : null;
-        if (drawPileRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
+        var toRect = GetDrawnCardHolderRect();
+        if (drawPileRect == null || toRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
         var card = CreateFlyingCard(canvas.transform);
         card.position = GetWorldPosition(drawPileRect);
@@ -260,7 +255,12 @@ public class SkyjoGameManager : MonoBehaviour
 
         yield return StartCoroutine(FlipFlyingCard(card, drawnValue));
 
-        if (card != null) Destroy(card.gameObject);
+        if (card != null)
+        {
+            card.position = GetWorldPosition(toRect);
+            _drawnCardVisual = card.gameObject;
+            _drawnFromDeck = true;
+        }
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
@@ -301,7 +301,41 @@ public class SkyjoGameManager : MonoBehaviour
             yield return null;
         }
 
-        Destroy(card.gameObject);
+        if (_drawnCardVisual != null) { Destroy(_drawnCardVisual); _drawnCardVisual = null; }
+        _drawnCardVisual = card.gameObject;
+        _drawnFromDeck = false;
+        RefreshUI();
+        _animating = false;
+        SetButtonsInteractable(true);
+    }
+
+    private IEnumerator AnimateDiscardDrawn()
+    {
+        _animating = true;
+        SetButtonsInteractable(false);
+        if (_drawnCardVisual == null) { _game.DiscardDrawnAndFlip(); RefreshUI(); _animating = false; SetButtonsInteractable(true); yield break; }
+
+        var canvas = GetCanvas();
+        var discardRect = discardPileButton != null ? discardPileButton.GetComponent<RectTransform>() : null;
+        if (canvas == null || discardRect == null) { Destroy(_drawnCardVisual); _drawnCardVisual = null; _game.DiscardDrawnAndFlip(); RefreshUI(); _animating = false; SetButtonsInteractable(true); yield break; }
+
+        var cardRect = _drawnCardVisual.GetComponent<RectTransform>();
+        Vector3 startPos = GetWorldPosition(cardRect);
+        Vector3 endPos = GetWorldPosition(discardRect);
+        float elapsed = 0f;
+
+        while (elapsed < ReplaceAnimDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / ReplaceAnimDuration);
+            t = t * t * (3f - 2f * t);
+            cardRect.position = Vector3.Lerp(startPos, endPos, t);
+            yield return null;
+        }
+
+        Destroy(_drawnCardVisual);
+        _drawnCardVisual = null;
+        _game.DiscardDrawnAndFlip();
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
@@ -348,9 +382,10 @@ public class SkyjoGameManager : MonoBehaviour
         var slotRect = slotViews != null && slotIndex < slotViews.Length && slotViews[slotIndex] != null
             ? slotViews[slotIndex].GetComponent<RectTransform>()
             : null;
+        var drawPileRect = drawPileButton != null ? drawPileButton.GetComponent<RectTransform>() : null;
         var discardRect = discardPileButton != null ? discardPileButton.GetComponent<RectTransform>() : null;
         var drawnRect = GetDrawnCardHolderRect();
-        if (canvas == null || slotRect == null || discardRect == null || drawnRect == null)
+        if (canvas == null || slotRect == null || drawPileRect == null || discardRect == null || drawnRect == null)
         {
             if (_game.ReplaceOrFlip(slotIndex)) RefreshUI();
             _animating = false;
@@ -361,20 +396,31 @@ public class SkyjoGameManager : MonoBehaviour
         var cell = _game.GetCell(slotIndex);
         int outgoingValue = cell.Value;
         int incomingValue = _game.DrawnCard ?? 0;
+        Vector3 sourcePos = _drawnFromDeck ? GetWorldPosition(drawPileRect) : GetWorldPosition(discardRect);
 
         var cardOut = CreateFlyingCard(canvas.transform);
         cardOut.position = GetWorldPosition(slotRect);
         cardOut.SetParent(canvas.transform, true);
         SetFlyingCardFace(cardOut, cell.FaceUp, outgoingValue);
 
-        var cardIn = CreateFlyingCard(canvas.transform);
-        cardIn.position = GetWorldPosition(drawnRect);
-        cardIn.SetParent(canvas.transform, true);
-        SetFlyingCardFace(cardIn, true, incomingValue);
+        RectTransform cardIn = null;
+        bool usingDrawnVisual = _drawnCardVisual != null;
+        if (usingDrawnVisual)
+        {
+            cardIn = _drawnCardVisual.GetComponent<RectTransform>();
+            _drawnCardVisual = null;
+            cardIn.position = sourcePos; // start from draw pile or discard pile
+        }
+        else
+        {
+            cardIn = CreateFlyingCard(canvas.transform);
+            cardIn.position = sourcePos;
+            cardIn.SetParent(canvas.transform, true);
+            SetFlyingCardFace(cardIn, true, incomingValue);
+        }
 
         Vector3 slotPos = GetWorldPosition(slotRect);
         Vector3 discardPos = GetWorldPosition(discardRect);
-        Vector3 drawnPos = GetWorldPosition(drawnRect);
 
         float elapsed = 0f;
         while (elapsed < ReplaceAnimDuration)
@@ -383,7 +429,7 @@ public class SkyjoGameManager : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / ReplaceAnimDuration);
             t = t * t * (3f - 2f * t);
             cardOut.position = Vector3.Lerp(slotPos, discardPos, t);
-            cardIn.position = Vector3.Lerp(drawnPos, slotPos, t);
+            cardIn.position = Vector3.Lerp(sourcePos, slotPos, t);
             yield return null;
         }
 
