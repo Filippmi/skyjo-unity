@@ -163,7 +163,7 @@ public static class SkyjoSetupScene
         msgRect.sizeDelta = new Vector2(520, 36);
         var msgText = msgGo.GetComponent<Text>();
         msgText.horizontalOverflow = HorizontalWrapMode.Wrap;
-        msgText.verticalOverflow = VerticalOverflowMode.Truncate;
+        msgText.verticalOverflow = VerticalWrapMode.Truncate;
         msgText.supportRichText = false;
         var msgLE = msgGo.AddComponent<LayoutElement>();
         msgLE.preferredHeight = 36;
