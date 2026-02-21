@@ -30,25 +30,59 @@ public static class SkyjoSetupScene
             canvasGo.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasGo.AddComponent<GraphicRaycaster>();
         }
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        if (scaler != null)
+        {
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1280f, 720f);
+            scaler.matchWidthOrHeight = 0.5f;
+            scaler.referencePixelsPerUnit = 100f;
+        }
 
         var root = canvas.transform;
+
+        // --- Game area (top ~78%): score, piles, grid, drawn card — avoids overlap with bottom bar
+        var gameAreaGo = new GameObject("GameArea");
+        gameAreaGo.transform.SetParent(root, false);
+        var gameAreaRect = gameAreaGo.AddComponent<RectTransform>();
+        gameAreaRect.anchorMin = new Vector2(0f, 0.22f);
+        gameAreaRect.anchorMax = new Vector2(1f, 1f);
+        gameAreaRect.offsetMin = Vector2.zero;
+        gameAreaRect.offsetMax = Vector2.zero;
+
+        // --- Bottom bar (bottom ~22%): message + buttons — fixed fraction so resizing doesn't overlap grid
+        var bottomPanelGo = new GameObject("BottomPanel");
+        bottomPanelGo.transform.SetParent(root, false);
+        var bottomPanelRect = bottomPanelGo.AddComponent<RectTransform>();
+        bottomPanelRect.anchorMin = new Vector2(0f, 0f);
+        bottomPanelRect.anchorMax = new Vector2(1f, 0.22f);
+        bottomPanelRect.offsetMin = Vector2.zero;
+        bottomPanelRect.offsetMax = Vector2.zero;
+        var bottomLayout = bottomPanelGo.AddComponent<VerticalLayoutGroup>();
+        bottomLayout.spacing = 8f;
+        bottomLayout.childAlignment = TextAnchor.MiddleCenter;
+        bottomLayout.childControlWidth = true;
+        bottomLayout.childControlHeight = true;
+        bottomLayout.childForceExpandWidth = false;
+        bottomLayout.childForceExpandHeight = false;
+        bottomLayout.padding = new RectOffset(16, 16, 12, 12);
 
         // --- Game manager (holds references)
         var managerGo = new GameObject("SkyjoGameManager");
         var manager = managerGo.AddComponent<SkyjoGameManager>();
 
-        // --- Score
-        var scoreGo = CreateText(root, "ScoreText", "Score: 0", 24);
+        // --- Score (inside GameArea)
+        var scoreGo = CreateText(gameAreaRect.transform, "ScoreText", "Score: 0", 24);
         var scoreRect = scoreGo.GetComponent<RectTransform>();
         scoreRect.anchorMin = new Vector2(0.5f, 1f);
         scoreRect.anchorMax = new Vector2(0.5f, 1f);
         scoreRect.pivot = new Vector2(0.5f, 1f);
-        scoreRect.anchoredPosition = new Vector2(0, -20);
+        scoreRect.anchoredPosition = new Vector2(0, -24);
         scoreRect.sizeDelta = new Vector2(300, 40);
 
-        // --- Piles row
+        // --- Piles row (inside GameArea)
         var pilesGo = new GameObject("Piles");
-        pilesGo.transform.SetParent(root, false);
+        pilesGo.transform.SetParent(gameAreaRect.transform, false);
         var pilesRect = pilesGo.AddComponent<RectTransform>();
         pilesRect.anchorMin = new Vector2(0.5f, 1f);
         pilesRect.anchorMax = new Vector2(0.5f, 1f);
@@ -74,14 +108,14 @@ public static class SkyjoSetupScene
         discardTopText.name = "DiscardTop";
         discardTopText.text = "";
 
-        // --- Grid
+        // --- Grid (inside GameArea, centered)
         var gridGo = new GameObject("PlayerGrid");
-        gridGo.transform.SetParent(root, false);
+        gridGo.transform.SetParent(gameAreaRect.transform, false);
         var gridRect = gridGo.AddComponent<RectTransform>();
         gridRect.anchorMin = new Vector2(0.5f, 0.5f);
         gridRect.anchorMax = new Vector2(0.5f, 0.5f);
         gridRect.pivot = new Vector2(0.5f, 0.5f);
-        gridRect.anchoredPosition = new Vector2(0, 20);
+        gridRect.anchoredPosition = new Vector2(0, 0);
         gridRect.sizeDelta = new Vector2(320, 240);
 
         var gridLayout = gridGo.AddComponent<GridLayoutGroup>();
@@ -109,8 +143,8 @@ public static class SkyjoSetupScene
             slotViews[i] = slotView;
         }
 
-        // --- Drawn card (shown when you have a card in hand)
-        var drawnCardGo = CreateText(root, "DrawnCardText", "Drawn: —", 28);
+        // --- Drawn card (inside GameArea, shown when you have a card in hand)
+        var drawnCardGo = CreateText(gameAreaRect.transform, "DrawnCardText", "Drawn: —", 28);
         var drawnCardRect = drawnCardGo.GetComponent<RectTransform>();
         drawnCardRect.anchorMin = new Vector2(0.5f, 0.5f);
         drawnCardRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -119,28 +153,39 @@ public static class SkyjoSetupScene
         drawnCardRect.sizeDelta = new Vector2(200, 50);
         drawnCardGo.SetActive(false);
 
-        // --- Message (one line, no rich text to avoid overlap)
-        var msgGo = CreateText(root, "MessageText", "Draw from deck or take the discard.", 18);
+        // --- Message (inside BottomPanel — stays in bottom bar so no overlap with grid)
+        var msgGo = CreateText(bottomPanelRect.transform, "MessageText", "Draw from deck or take the discard.", 18);
         var msgRect = msgGo.GetComponent<RectTransform>();
-        msgRect.anchorMin = new Vector2(0.5f, 0);
-        msgRect.anchorMax = new Vector2(0.5f, 0);
-        msgRect.pivot = new Vector2(0.5f, 0);
-        msgRect.anchoredPosition = new Vector2(0, 120);
+        msgRect.anchorMin = new Vector2(0.5f, 0.5f);
+        msgRect.anchorMax = new Vector2(0.5f, 0.5f);
+        msgRect.pivot = new Vector2(0.5f, 0.5f);
+        msgRect.anchoredPosition = Vector2.zero;
         msgRect.sizeDelta = new Vector2(520, 36);
         var msgText = msgGo.GetComponent<Text>();
         msgText.horizontalOverflow = HorizontalWrapMode.Wrap;
-        msgText.verticalOverflow = VerticalWrapMode.Truncate;
+        msgText.verticalOverflow = VerticalOverflowMode.Truncate;
         msgText.supportRichText = false;
+        var msgLE = msgGo.AddComponent<LayoutElement>();
+        msgLE.preferredHeight = 36;
+        msgLE.minHeight = 28;
 
-        // --- Buttons row
+        // --- Buttons row (inside BottomPanel)
         var buttonsGo = new GameObject("ActionButtons");
-        buttonsGo.transform.SetParent(root, false);
+        buttonsGo.transform.SetParent(bottomPanelRect.transform, false);
         var buttonsRect = buttonsGo.AddComponent<RectTransform>();
-        buttonsRect.anchorMin = new Vector2(0.5f, 0);
-        buttonsRect.anchorMax = new Vector2(0.5f, 0);
-        buttonsRect.pivot = new Vector2(0.5f, 0);
-        buttonsRect.anchoredPosition = new Vector2(0, 60);
+        buttonsRect.anchorMin = new Vector2(0.5f, 0.5f);
+        buttonsRect.anchorMax = new Vector2(0.5f, 0.5f);
+        buttonsRect.pivot = new Vector2(0.5f, 0.5f);
+        buttonsRect.anchoredPosition = Vector2.zero;
         buttonsRect.sizeDelta = new Vector2(500, 50);
+        var horzLayout = buttonsGo.AddComponent<HorizontalLayoutGroup>();
+        horzLayout.spacing = 10f;
+        horzLayout.childAlignment = TextAnchor.MiddleCenter;
+        horzLayout.childControlWidth = horzLayout.childControlHeight = false;
+        horzLayout.childForceExpandWidth = horzLayout.childForceExpandHeight = false;
+        var buttonsLE = buttonsGo.AddComponent<LayoutElement>();
+        buttonsLE.preferredHeight = 50;
+        buttonsLE.minHeight = 36;
 
         var btnDraw = CreateButton(buttonsGo.transform, "BtnDraw", "Draw from deck", 140, 36);
         var btnTake = CreateButton(buttonsGo.transform, "BtnTakeDiscard", "Take discard", 120, 36);
@@ -148,8 +193,6 @@ public static class SkyjoSetupScene
         btnDiscardDrawn.gameObject.SetActive(false);
         var btnNewRound = CreateButton(buttonsGo.transform, "BtnNewRound", "New round", 100, 36);
         btnNewRound.gameObject.SetActive(false);
-
-        LayoutHorizontal(buttonsRect, 10, btnDraw.transform, btnTake.transform, btnDiscardDrawn.transform, btnNewRound.transform);
 
         // --- Wire manager via SerializedObject
         var so = new SerializedObject(manager);
