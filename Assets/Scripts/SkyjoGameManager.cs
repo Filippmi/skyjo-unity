@@ -263,14 +263,16 @@ public class SkyjoGameManager : MonoBehaviour
         Vector3 startPos = card.position;
         Vector3 endPos = GetWorldPosition(toRect);
         float flipAt = DrawAnimDuration * 0.5f;
+        const float flipDuration = 0.3f; // FlipFlyingCard total time
         bool flipped = false;
+        float totalDuration = Mathf.Max(DrawAnimDuration, flipAt + flipDuration);
 
-        while (elapsed < DrawAnimDuration)
+        while (elapsed < totalDuration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / DrawAnimDuration);
-            t = t * t * (3f - 2f * t); // smoothstep
-            card.position = Vector3.Lerp(startPos, endPos, t);
+            float moveT = Mathf.Clamp01(elapsed / DrawAnimDuration);
+            moveT = moveT * moveT * (3f - 2f * moveT); // smoothstep
+            card.position = Vector3.Lerp(startPos, endPos, moveT);
 
             if (!flipped && elapsed >= flipAt)
             {
@@ -329,31 +331,34 @@ public class SkyjoGameManager : MonoBehaviour
 
     private IEnumerator FlipFlyingCard(RectTransform card, int value)
     {
+        if (card == null) yield break;
         float duration = 0.15f;
         float elapsed = 0f;
         Vector3 scale = card.localScale;
         while (elapsed < duration)
         {
+            if (card == null) yield break;
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
             scale.x = 1f - t;
             card.localScale = scale;
             yield return null;
         }
+        if (card == null) yield break;
         SetFlyingCardFace(card, true, value);
         scale.x = 0f;
         card.localScale = scale;
         elapsed = 0f;
         while (elapsed < duration)
         {
+            if (card == null) yield break;
             elapsed += Time.deltaTime;
             float t = elapsed / duration;
             scale.x = t;
             card.localScale = scale;
             yield return null;
         }
-        scale.x = 1f;
-        card.localScale = scale;
+        if (card != null) { scale.x = 1f; card.localScale = scale; }
     }
 
     private IEnumerator AnimateReplace(int slotIndex)
