@@ -14,6 +14,22 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
     [SerializeField] private UnityEngine.UI.Text label;
 
     private SkyjoGameManager _manager;
+    private bool _replacing; // during replace animation, show placeholder so no card "left behind"
+
+    /// <summary>During replace animation: show face-down placeholder so the slot doesn't show the old card.</summary>
+    public void SetReplacing(bool replacing)
+    {
+        _replacing = replacing;
+        if (background && label)
+        {
+            if (_replacing)
+            {
+                background.color = new Color(0.3f, 0.4f, 0.55f);
+                label.text = "?";
+                label.color = new Color(0.5f, 0.6f, 0.7f);
+            }
+        }
+    }
 
     private void Awake()
     {
@@ -33,6 +49,12 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
 
     public void Set(SkyjoGame.GridCell cell)
     {
+        if (_replacing)
+        {
+            if (background) background.color = new Color(0.3f, 0.4f, 0.55f);
+            if (label) { label.text = "?"; label.color = new Color(0.5f, 0.6f, 0.7f); }
+            return;
+        }
         if (cell.Removed)
         {
             if (background) background.color = new Color(0.2f, 0.2f, 0.25f);

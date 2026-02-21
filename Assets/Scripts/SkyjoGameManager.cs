@@ -476,10 +476,13 @@ public class SkyjoGameManager : MonoBehaviour
         int incomingValue = _game.DrawnCard ?? 0;
         Vector3 sourcePos = _drawnFromDeck ? GetWorldPosition(drawPileRect) : GetWorldPosition(discardRect);
 
+        if (slotViews != null && slotIndex < slotViews.Length && slotViews[slotIndex] != null)
+            slotViews[slotIndex].SetReplacing(true);
+
         var cardOut = CreateFlyingCard(canvas.transform);
         cardOut.position = GetWorldPosition(slotRect);
         cardOut.SetParent(canvas.transform, true);
-        SetFlyingCardFace(cardOut, cell.FaceUp, outgoingValue);
+        SetFlyingCardFace(cardOut, true, outgoingValue); // discard pile always shows cards face-up
 
         RectTransform cardIn = null;
         bool usingDrawnVisual = _drawnCardVisual != null;
@@ -514,6 +517,8 @@ public class SkyjoGameManager : MonoBehaviour
         _game.ReplaceOrFlip(slotIndex);
         AddCardToDiscardStack(cardOut.transform, discardRect);
         Destroy(cardIn.gameObject);
+        if (slotViews != null && slotIndex < slotViews.Length && slotViews[slotIndex] != null)
+            slotViews[slotIndex].SetReplacing(false);
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
