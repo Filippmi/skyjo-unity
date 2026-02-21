@@ -131,7 +131,7 @@ public class SkyjoGameManager : MonoBehaviour
     private void RefreshUI()
     {
         if (scoreText) scoreText.text = "Score: " + _game.GetScore();
-        if (drawCountText) drawCountText.text = "Draw\n" + _game.Deck.Count;
+        if (drawCountText) drawCountText.text = ""; // Draw pile shows no text (card back only)
 
         if (discardTopText)
         {
@@ -249,40 +249,18 @@ public class SkyjoGameManager : MonoBehaviour
         var canvas = GetCanvas();
         if (canvas == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
-        var fromRect = drawPileButton != null ? drawPileButton.GetComponent<RectTransform>() : null;
-        var toRect = GetDrawnCardHolderRect();
-        if (fromRect == null || toRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
+        var drawPileRect = drawPileButton != null ? drawPileButton.GetComponent<RectTransform>() : null;
+        if (drawPileRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
         var card = CreateFlyingCard(canvas.transform);
-        card.position = GetWorldPosition(fromRect);
+        card.position = GetWorldPosition(drawPileRect);
         card.SetParent(canvas.transform, true);
         SetFlyingCardFace(card, false, 0);
         int drawnValue = _game.DrawnCard ?? 0;
 
-        float elapsed = 0f;
-        Vector3 startPos = card.position;
-        Vector3 endPos = GetWorldPosition(toRect);
-        float flipAt = DrawAnimDuration * 0.5f;
-        const float flipDuration = 0.3f; // FlipFlyingCard total time
-        bool flipped = false;
-        float totalDuration = Mathf.Max(DrawAnimDuration, flipAt + flipDuration);
+        yield return StartCoroutine(FlipFlyingCard(card, drawnValue));
 
-        while (elapsed < totalDuration)
-        {
-            elapsed += Time.deltaTime;
-            float moveT = Mathf.Clamp01(elapsed / DrawAnimDuration);
-            moveT = moveT * moveT * (3f - 2f * moveT); // smoothstep
-            card.position = Vector3.Lerp(startPos, endPos, moveT);
-
-            if (!flipped && elapsed >= flipAt)
-            {
-                flipped = true;
-                StartCoroutine(FlipFlyingCard(card, drawnValue));
-            }
-            yield return null;
-        }
-
-        Destroy(card.gameObject);
+        if (card != null) Destroy(card.gameObject);
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
