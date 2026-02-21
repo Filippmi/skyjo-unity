@@ -22,6 +22,15 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
         _manager = FindObjectOfType<SkyjoGameManager>();
     }
 
+    /// <summary>Card background color by value: -2/-1 purple, 0-4 green, 5-8 yellow, 9-12 red.</summary>
+    private static Color GetCardColor(int value)
+    {
+        if (value <= -1) return new Color(0.5f, 0.2f, 0.6f);   // purple
+        if (value <= 4) return new Color(0.2f, 0.65f, 0.35f);  // green
+        if (value <= 8) return new Color(0.9f, 0.75f, 0.2f);   // yellow
+        return new Color(0.8f, 0.25f, 0.25f);                   // red (9-12)
+    }
+
     public void Set(SkyjoGame.GridCell cell)
     {
         if (cell.Removed)
@@ -31,8 +40,8 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
         }
         else if (cell.FaceUp)
         {
-            if (background) background.color = new Color(0.95f, 0.95f, 0.9f);
-            if (label) { label.text = cell.Value.ToString(); label.color = cell.Value < 0 ? new Color(0.18f, 0.49f, 0.2f) : Color.black; }
+            if (background) background.color = GetCardColor(cell.Value);
+            if (label) { label.text = cell.Value.ToString(); label.color = Color.white; }
         }
         else
         {
