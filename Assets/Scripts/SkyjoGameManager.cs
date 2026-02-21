@@ -109,6 +109,7 @@ public class SkyjoGameManager : MonoBehaviour
     public void OnNewRound()
     {
         if (_drawnCardVisual != null) { Destroy(_drawnCardVisual); _drawnCardVisual = null; }
+        ClearDiscardStack();
         _game.NewRound();
         RefreshUI();
     }
@@ -125,7 +126,13 @@ public class SkyjoGameManager : MonoBehaviour
             StartCoroutine(AnimateReplace(index));
             return;
         }
-        // Flip only: no animation
+        // Flip only: animate flip then apply
+        var cell = _game.GetCell(index);
+        if (!cell.FaceUp && !cell.Removed)
+        {
+            StartCoroutine(AnimateFlipGridCard(index));
+            return;
+        }
         if (_game.ReplaceOrFlip(index))
             RefreshUI();
     }
@@ -135,10 +142,13 @@ public class SkyjoGameManager : MonoBehaviour
         if (scoreText) scoreText.text = "Score: " + _game.GetScore();
         if (drawnCardText) drawnCardText.gameObject.SetActive(false); // drawn card shown as visual, not text
 
+        var top = _game.TopDiscard;
         if (discardTopText)
-        {
-            var top = _game.TopDiscard;
             discardTopText.text = top.HasValue ? top.Value.ToString() : "";
+        if (discardPileButton)
+        {
+            var img = discardPileButton.GetComponent<UnityEngine.UI.Image>();
+            if (img) img.color = top.HasValue ? CardSlotView.GetCardColor(top.Value) : new Color(0.3f, 0.4f, 0.55f);
         }
 
         for (int i = 0; i < slotViews.Length && i < SkyjoGame.GridSize; i++)
@@ -332,9 +342,78 @@ public class SkyjoGameManager : MonoBehaviour
             yield return null;
         }
 
-        Destroy(_drawnCardVisual);
-        _drawnCardVisual = null;
         _game.DiscardDrawnAndFlip();
+        AddCardToDiscardStack(_drawnCardVisual.transform, discardRect);
+        _drawnCardVisual = null;
+        RefreshUI();
+        _animating = false;
+        SetButtonsInteractable(true);
+    }
+
+    private const int MaxDiscardStackCards = 15;
+    private const float DiscardStackAngleRange = 14f;
+    private const float DiscardStackOffsetRange = 6f;
+
+    private void ClearDiscardStack()
+    {
+        if (discardPileButton == null) return;
+        for (int i = discardPileButton.transform.childCount - 1; i >= 0; i--)
+        {
+            var c = discardPileButton.transform.GetChild(i);
+            if (c.name == "DiscardCard") Object.Destroy(c.gameObject);
+        }
+    }
+
+    private void AddCardToDiscardStack(Transform cardTransform, RectTransform discardParent)
+    {
+        if (cardTransform == null || discardParent == null) return;
+        cardTransform.SetParent(discardParent, true);
+        cardTransform.name = "DiscardCard";
+        var rect = cardTransform.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchoredPosition = new Vector2(
+                Random.Range(-DiscardStackOffsetRange, DiscardStackOffsetRange),
+                Random.Range(-DiscardStackOffsetRange, DiscardStackOffsetRange));
+            rect.localEulerAngles = new Vector3(0f, 0f, Random.Range(-DiscardStackAngleRange, DiscardStackAngleRange));
+        }
+        int discardCards = 0;
+        for (int i = 0; i < discardParent.childCount; i++)
+            if (discardParent.GetChild(i).name == "DiscardCard") discardCards++;
+        while (discardCards > MaxDiscardStackCards)
+        {
+            for (int i = 0; i < discardParent.childCount; i++)
+            {
+                var c = discardParent.GetChild(i);
+                if (c.name == "DiscardCard") { Object.Destroy(c.gameObject); discardCards--; break; }
+            }
+        }
+    }
+
+    private IEnumerator AnimateFlipGridCard(int slotIndex)
+    {
+        _animating = true;
+        SetButtonsInteractable(false);
+
+        var cell = _game.GetCell(slotIndex);
+        if (cell.FaceUp || cell.Removed) { _animating = false; SetButtonsInteractable(true); yield break; }
+
+        var canvas = GetCanvas();
+        var slotRect = slotViews != null && slotIndex < slotViews.Length && slotViews[slotIndex] != null
+            ? slotViews[slotIndex].GetComponent<RectTransform>()
+            : null;
+        if (canvas == null || slotRect == null) { _animating = false; SetButtonsInteractable(true); yield break; }
+
+        var card = CreateFlyingCard(canvas.transform);
+        card.position = GetWorldPosition(slotRect);
+        card.SetParent(canvas.transform, true);
+        SetFlyingCardFace(card, false, 0);
+        int value = cell.Value;
+
+        yield return StartCoroutine(FlipFlyingCard(card, value));
+
+        if (card != null) Object.Destroy(card.gameObject);
+        _game.ReplaceOrFlip(slotIndex);
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
@@ -432,9 +511,9 @@ public class SkyjoGameManager : MonoBehaviour
             yield return null;
         }
 
-        Destroy(cardOut.gameObject);
-        Destroy(cardIn.gameObject);
         _game.ReplaceOrFlip(slotIndex);
+        AddCardToDiscardStack(cardOut.transform, discardRect);
+        Destroy(cardIn.gameObject);
         RefreshUI();
         _animating = false;
         SetButtonsInteractable(true);
