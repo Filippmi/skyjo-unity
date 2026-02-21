@@ -23,7 +23,7 @@ public class CardSlotView : MonoBehaviour, IPointerClickHandler
     }
 
     /// <summary>Card background color by value: -2/-1 purple, 0-4 green, 5-8 yellow, 9-12 red.</summary>
-    private static Color GetCardColor(int value)
+    public static Color GetCardColor(int value)
     {
         if (value <= -1) return new Color(0.5f, 0.2f, 0.6f);   // purple
         if (value <= 4) return new Color(0.2f, 0.65f, 0.35f);  // green
