@@ -56,7 +56,8 @@ public static class SkyjoSetupScene
         pilesRect.anchoredPosition = new Vector2(0, -70);
         pilesRect.sizeDelta = new Vector2(280, 100);
 
-        var drawPileBtn = CreateButton(pilesGo.transform, "DrawPile", "", 90, 90);
+        const float cardW = 72f, cardH = 96f; // match SkyjoGameManager card size
+        var drawPileBtn = CreateButton(pilesGo.transform, "DrawPile", "", cardW, cardH);
         var drawPileRect = drawPileBtn.GetComponent<RectTransform>();
         drawPileRect.anchorMin = new Vector2(0, 0.5f);
         drawPileRect.anchorMax = new Vector2(0, 0.5f);
@@ -64,7 +65,7 @@ public static class SkyjoSetupScene
         var drawPileText = drawPileBtn.GetComponentInChildren<Text>();
         if (drawPileText != null) drawPileText.gameObject.SetActive(false);
 
-        var discardBtn = CreateButton(pilesGo.transform, "DiscardPile", "Discard", 90, 90);
+        var discardBtn = CreateButton(pilesGo.transform, "DiscardPile", "Discard", cardW, cardH);
         var discardRect = discardBtn.GetComponent<RectTransform>();
         discardRect.anchorMin = new Vector2(1, 0.5f);
         discardRect.anchorMax = new Vector2(1, 0.5f);

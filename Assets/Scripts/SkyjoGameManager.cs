@@ -244,8 +244,7 @@ public class SkyjoGameManager : MonoBehaviour
         if (canvas == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
         var drawPileRect = drawPileButton != null ? drawPileButton.GetComponent<RectTransform>() : null;
-        var toRect = GetDrawnCardHolderRect();
-        if (drawPileRect == null || toRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
+        if (drawPileRect == null) { _animating = false; RefreshUI(); SetButtonsInteractable(true); yield break; }
 
         var card = CreateFlyingCard(canvas.transform);
         card.position = GetWorldPosition(drawPileRect);
@@ -257,7 +256,7 @@ public class SkyjoGameManager : MonoBehaviour
 
         if (card != null)
         {
-            card.position = GetWorldPosition(toRect);
+            // Keep card on top of draw pile (don't move to drawn holder)
             _drawnCardVisual = card.gameObject;
             _drawnFromDeck = true;
         }
